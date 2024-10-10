@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html style="overflow: hidden;">
+
+<head>
+  <meta charset="utf-8">
+  <title>医学影像查看器</title>
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="../res/layui/css/layui.css" rel="stylesheet">
+  <link href="./css/index.css" rel="stylesheet">
+  <link href="./css/icons.css" rel="stylesheet">
+  <link href="./css/insertlayout.css" rel="stylesheet">
+
+
+  <style>
+    .file-list {
+      background-color: #2c3e50;
+      color: #ecf0f1;
+      padding: 10px;
+    }
+
+    .file-list-item {
+      padding: 8px 12px;
+      margin-bottom: 5px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border-radius: 4px;
+    }
+
+    .file-list-item:hover {
+      background-color: #34495e;
+    }
+
+    .file-list-item.active {
+      background-color: #3498db;
+    }
+
+    .file-list-item:before {
+      content: '\f15b';
+      /* Font Awesome file icon */
+      font-family: 'FontAwesome';
+      margin-right: 8px;
+    }
+
+    /* 添加表格样式 */
+    .lung-nodule-info {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 300px;
+      background-color: #2c3e50;
+      color: #ecf0f1;
+      padding: 10px;
+      overflow-y: auto;
+      height: 100%;
+    }
+
+    /* 添加表格容器样式 */
+    .table-container {
+      max-height: 200px;
+      /* 设置表格容器的高度 */
+      overflow-y: auto;
+      /* 添加垂直滚动条 */
+      overflow-x: auto;
+      /* 添加水平滚动条 */
+      border: 1px solid #ecf0f1;
+      /* 添加边框 */
+      margin-bottom: 20px;
+      /* 添加底部间距 */
+      width: 100%;
+      /* 设置表格容器的宽度 */
+    }
+
+    /* 调整表格样式 */
+    .table-container table {
+      width: auto;
+      /* 设置表格的宽度 */
+      min-width: 100%;
+      /* 确保表格的最小宽度为容器的宽度 */
+      border-collapse: collapse;
+      table-layout: fixed;
+      /* 固定表格布局 */
+    }
+
+    .table-container th,
+    .table-container td {
+      border: 1px solid #ecf0f1;
+      padding: 8px;
+      text-align: left;
+      white-space: nowrap;
+      /* 防止内容换行 */
+      overflow: hidden;
+      /* 隐藏溢出内容 */
+      text-overflow: ellipsis;
+      /* 显示省略号 */
+    }
+
+    .table-container th {
+      background-color: #34495e;
+      position: sticky;
+      /* 固定表头 */
+      top: 0;
+    }
+
+    /* 添加诊断意见输入框样式 */
+    .diagnosis-input {
+      margin-bottom: 20px;
+      /* 添加底部间距 */
+    }
+
+    .diagnosis-input label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+
+    .diagnosis-input textarea {
+      width: 100%;
+      /* 设置输入框的宽度为容器的宽度 */
+      max-width: 100%;
+      /* 设置输入框的最大宽度为容器的宽度 */
+      box-sizing: border-box;
+      /* 确保边框和内边距包含在宽度内 */
+    }
+
+    /* 添加影像所见框样式 */
+    .image-findings {
+      margin-top: 20px;
+    }
+
+    .image-findings label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+
+    .image-findings-text {
+      width: 100%;
+      /* 设置框的宽度为容器的宽度 */
+      max-width: 100%;
+      /* 设置框的最大宽度为容器的宽度 */
+      box-sizing: border-box;
+      /* 确保边框和内边距包含在宽度内 */
+      border: 1px solid #ecf0f1;
+      /* 添加边框 */
+      padding: 8px;
+      /* 添加内边距 */
+      margin-bottom: 20px;
+      /* 添加底部间距 */
+      resize: vertical;
+      /* 允许垂直伸缩 */
+      overflow: auto;
+      /* 自动处理溢出内容 */
+    }
+
+    .image-findings select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ecf0f1;
+      background-color: #34495e;
+      color: #ecf0f1;
+    }
+
+    /* 添加双肺描述文字样式 */
+    .double-lung-description {
+      margin-top: 10px;
+    }
+
+    .double-lung-description span {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+
+    /* 添加气管描述下拉框样式 */
+    .trachea-description {
+      margin-top: 10px;
+    }
+
+    .trachea-description span {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+  </style>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+
+
+</head>
+
+<body id="viewBodt" style="display: none;">
+  <div class="layui-layout layui-layout-admin">
+    <!--头部-->
+    <div class="layui-header bg-secondary-dark">
+      <div class="layui-logo">影像查看</div>
+      <!-- 头部区域（可配合layui 已有的水平导航） -->
+      <ul class="layui-nav layui-layout-left flex">
+        <div class="btn-contain">
+          <div class="btn-div">
+            <button type="button" class="layui-btn layui-btn-md md-img-btn  layui-btn-md-default md-btn"
+              toolType="operateToolBtn" toolValue="reset">
+              <img src="./imgs/icons/ActualSize.png" />
+              <div>初始尺寸</div>
+            </button>
+          </div>
+        </div>
+        <div id="layout-img" class="btn-contain">
+          <div class="btn-div">
+            <button type="button" class="layui-btn layui-btn-md layui-btn-md-default md-btn">
+              <img src="./imgs/icons/MagnifyGlassMode.png" />
+              <div>图像布局</div>
+            </button>
+          </div>
+        </div>
+        <div class="btn-contain ">
+          <div class="btn-div">
+            <button type="button" class="layui-btn layui-btn-md  layui-btn-md-default md-btn" toolType="measureToolBtn"
+              toolValue="Wwwc">
+              <img src="./imgs/icons/Wwwc.png" />
+              <div>窗宽窗位</div>
+            </button>
+          </div>
+        </div>
+        <div class="btn-contain ">
+          <div class="btn-div">
+            <button type="button" class="layui-btn layui-btn-md layui-btn-md-default md-btn" toolType="measureToolBtn"
+              toolValue="Magnify">
+              <img src="./imgs/icons/Magnify.png" />
+              <div>放大镜</div>
+            </button>
+          </div>
+        </div>
+        <div class="btn-contain ">
+          <div class="btn-div">
+            <button type="button" class="layui-btn layui-btn-md layui-btn-md-default md-btn" toolType="measureToolBtn"
+              toolValue="Pan">
+              <img src="./imgs/icons/Pan.png" />
+              <div>平移</div>
+            </button>
+          </div>
+        </div>
+        <div class="btn-contain ">
+          <div class="btn-div">
+            <button type="button" class="layui-btn layui-btn-md layui-btn-md-default md-btn" toolType="measureToolBtn"
+              toolValue="Zoom">
+              <img src="./imgs/icons/Zoom.png" />
+              <div>缩放</div>
+            </button>
+          </div>
+        </div>
+        <div class="btn-contain ">
+          <div class="btn-div">
+            <button type="button" class="layui-btn layui-btn-md layui-btn-md-default md-btn" toolType="operateToolBtn"
+              toolValue="leftRotate">
+              <img src="./imgs/icons/leftRotate.png" />
+              <div>左旋转</div>
+            </button>
+          </div>
+        </div>
+        <div class="btn-contain ">
+          <div class="btn-div">
+            <button type="button" class="layui-btn layui-btn-md layui-btn-md-default md-btn" toolType="operateToolBtn"
+              toolValue="rightRotate">
+              <img src="./imgs/icons/rightRotate.png" />
+              <div>右旋转</div>
+            </button>
+          </div>
+        </div>
+        <div class="btn-contain ">
+          <div class="btn-div">
+            <button type="button" class="layui-btn layui-btn-md layui-btn-md-default md-btn" toolType="operateToolBtn"
+              toolValue="invert">
+              <img src="./imgs/icons/Invert.png" />
+              <div>负像</div>
+            </button>
+          </div>
+        </div>
+        <div class="btn-contain ">
+          <div class="btn-div">
+            <button type="button" class="layui-btn layui-btn-md layui-btn-md-default md-btn" toolType="operateToolBtn"
+              toolValue="hflip">
+              <img src="./imgs/icons/Hflip.png" />
+              <div>左右镜像</div>
+            </button>
+          </div>
+        </div>
+        <div class="btn-contain">
+          <div class="btn-div">
+            <button type="button" class="layui-btn layui-btn-md layui-btn-md-default md-btn" toolType="operateToolBtn"
+              toolValue="vflip">
+              <img src="./imgs/icons/Vflip.png" />
+              <div>上下镜像</div>
+            </button>
+          </div>
+        </div>
+        <div class="btn-contain">
+          <div class="btn-div">
+            <button type="button" class="layui-btn layui-btn-md layui-btn-md-default md-btn" toolType="measureToolBtn"
+              toolValue="Length">
+              <img src="./imgs/icons/Ruler.png" />
+              <div>长度测量</div>
+            </button>
+          </div>
+        </div>
+        <div class="btn-contain">
+          <div class="btn-div">
+            <button type="button" class="layui-btn layui-btn-md layui-btn-md-default md-btn" toolType="measureToolBtn"
+              toolValue="Angle">
+              <img src="./imgs/icons/Protractor.png" />
+              <div>角度测量</div>
+            </button>
+          </div>
+        </div>
+        <div class="btn-contain">
+          <div class="btn-div">
+            <button type="button" class="layui-btn layui-btn-md layui-btn-md-default md-btn" toolType="measureToolBtn"
+              toolValue="Ctr">
+              <img src="imgs/icons/CTR.png" />
+              <div>心胸比</div>
+            </button>
+          </div>
+        </div>
+        <div class="btn-contain">
+          <div class="btn-div">
+            <button type="button" class="layui-btn layui-btn-md layui-btn-md-default md-btn" toolType="clearToolBtn"
+              toolValue="clearTollState">
+              <img src="./imgs/icons/clear.png" />
+              <div>清除标注</div>
+            </button>
+          </div>
+        </div>
+
+        <div class="btn-contain">
+          <div class="btn-div">
+            <button type="button" class="layui-btn layui-btn-md layui-btn-md-default md-btn" toolType="clearToolBtn"
+              toolValue="nooperate">
+              <img src="./imgs/icons/nooperate.png" />
+              <div>无操作</div>
+            </button>
+          </div>
+        </div>
+        <div class="btn-contain">
+          <div class="btn-div">
+            <button id="color-map" type="button" class="layui-btn layui-btn-md layui-btn-md-default md-btn"
+              toolType="noLightBtn" toolValue="">
+              <img src="./imgs/icons/ColorMap.png" />
+              <div>伪彩</div>
+            </button>
+          </div>
+        </div>
+
+
+
+        <!-- 检测结果按钮 -->
+        <div class="btn-contain">
+          <div class="btn-div">
+            <button id="toggle-original-image" type="button" class="layui-btn layui-btn-md layui-btn-md-default md-btn">
+              <img src="./imgs/icons/Image.png" />
+              <div>显示原始图像</div>
+            </button>
+          </div>
+        </div>
+
+        <div class="btn-contain">
+          <div class="btn-div">
+            <button id="return-btn" type="button" class="layui-btn layui-btn-md layui-btn-md-default md-btn">
+              <img src="./imgs/icons/return.png" />
+              <div>返回影像浏览</div>
+            </button>
+          </div>
+        </div>
+
+
+
+      </ul>
+      <ul class="layui-nav layui-layout-right"></ul>
+    </div>
+    <div class="layui-side bg-black overflow-hidden">
+      <div id="series-header" style="height: 40px;">
+        <div style="display: flex;justify-content: center;align-items: center;text-align:center;height: 38px;">
+          <div class="item-wrap hidden"></div>
+          <div class="item-wrap hidden">
+            <div class="title-text">检查影像</div>
+          </div>
+          <div id="flexBtn" class="layui-icon layui-icon-shrink-right flex-btn item-wrap" style="font-size: 20px;">
+          </div>
+          <span class="title-text"></span>
+        </div>
+      </div>
+      <div id="file-list" class="file-list invisible-scrollbar ohif-scrollbar"
+        style="position: relative; height: calc(50% - 21px); width: 100%; overflow-y: auto;"></div>
+      <div id="series-list" class="series-list invisible-scrollbar ohif-scrollbar"
+        style="position: relative; height: calc(50% - 21px); width: 100%;"></div>
+    </div>
+    <div class="layui-body bg-black">
+      <div class="row flex-1">
+        <div class="flex-1">
+          <div id="grid-content" style="position: relative; height: 100%; width: 100%;"></div>
+        </div>
+      </div>
+
+      <div class="lung-nodule-info">
+        <h3>肺结节信息</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>位置</th>
+                <th>大小</th>
+                <th>类型</th>
+                <!-- 可以添加更多列 -->
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr>
+                <td>1</td>
+                <td>右肺上叶</td>
+                <td>5mm</td>
+                <td>实性</td>
+              </tr>
+              <tr>
+                <td>2</td>
+                <td>左肺下叶</td>
+                <td>8mm</td>
+                <td>磨玻璃</td>
+              </tr>
+              <!-- 可以添加更多行 -->
+
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 添加影像所见框 -->
+        <div class="image-findings">
+          <!-- 双肺描述下拉框 -->
+          <div class="double-lung-description">
+            <span>双肺描述:</span>
+            <select id="double-lung-dropdown">
+              <option value="">请选择</option>
+              <option value="双肺透亮度可">双肺透亮度可</option>
+              <option value="双肺纹理清晰">双肺纹理清晰</option>
+              <option value="双肺门影不大">双肺门影不大</option>
+            </select>
+          </div>
+
+          <!-- 气管描述下拉框 -->
+          <div class="trachea-description">
+            <span>气管描述:</span>
+            <select id="trachea-dropdown">
+              <option value="">请选择</option>
+              <option value="气管及主支气管通畅">气管及主支气管通畅</option>
+              <option value="气管及主支气管不通畅">气管及主支气管不通畅</option>
+            </select>
+          </div>
+          <!-- 影像所见输入框 -->
+          <label for="image-findings-text">影像所见:</label>
+          <textarea id="image-findings-text" class="image-findings-text" rows="4" cols="30"></textarea>
+
+        </div>
+
+        <!-- 诊断意见输入框 -->
+        <div class="diagnosis-input">
+          <label for="diagnosis-opinion">诊断意见:</label>
+          <textarea id="diagnosis-opinion" rows="4" cols="30"></textarea>
+        </div>
+
+      </div>
+
+
+      <script src="../res/layui/layui.js"></script>
+      <script src="./js/viewersConfig.js"></script>
+      <script src="./js/include-cornerstone.js"></script>
+      <script src="./js/commonParams.js"></script>
+
+      <script>
+        let showOriginalImage = false;
+
+        document.getElementById('return-btn').addEventListener('click', function () {
+          // 获取当前URL
+          var currentUrl = new URL(window.location.href);
+
+          // 获取当前URL的查询参数
+          var params = currentUrl.searchParams;
+
+          // 获取jsonFile参数，如果不存在则使用默认值
+          var jsonFile = params.get('jsonFile') || 'default-result.json';
+
+          // 构造原始的jsonFile名称（移除'-result'后缀）
+          var originalJsonFile = jsonFile.replace('-result.json', '.json');
+
+          // 设置新的jsonFile参数
+          params.set('jsonFile', originalJsonFile);
+
+          // 构造新的URL
+          var newUrl = new URL('/dcmViewer/medImgViewer.html', currentUrl.origin);
+          newUrl.search = params.toString();
+
+          // 跳转到原始页面
+          window.location.href = newUrl.href;
+        });
+
+        layui.use(['jquery', 'element', 'initcornerstone', 'insertLayout', 'changeLayout', 'taskHelper', 'imgTools'], function () {
+          var $ = layui.$,
+            element = layui.element,
+            initcornerstone = layui.initcornerstone,
+            insertLayout = layui.insertLayout,
+            changeLayout = layui.changeLayout,
+            taskHelper = layui.taskHelper,
+            imgTools = layui.imgTools,
+            dropdown = layui.dropdown;
+
+          //获取url后边的参数
+          var urlObj = layui.url();
+          console.log(urlObj)
+          if (!(urlObj.search.hospitalId && urlObj.search.patientId)) {
+            alert('缺少参数');
+            return;
+          }
+          var layerObj = layer.load(2, { shade: [1, '#000'], content: '' });
+
+          $('#viewBodt').css('display', 'block');
+
+          var studyDivId = 'series-list';
+          var seriesDivId = 'grid-content';
+
+          var studyArrData;
+          var imgNums = 0;
+
+          const imageIds = [];
+
+          var urlParams = new URLSearchParams(window.location.search);
+          var jsonFile = urlParams.get('jsonFile') || 'default.json'; // 如果没有指定jsonFile，使用默认值
+
+          var requestDataUrl = `/dcmViewer/datademo/${jsonFile}`;
+
+          $.ajax({
+            url: requestDataUrl,
+            type: 'get',
+            data: urlObj.search,
+            dataType: 'json',
+            success: function (result) {
+              if (result.code == '0') {
+                if (!result.data || !result.data.data || !result.data.data.folders || !(result.data.data.folders.length > 0)) {
+                  return;
+                }
+                let studyFolders = result.data.data.folders;
+                _.forEach(studyFolders, (study) => {
+                  if (!study || !study.folders || !(study.folders.length > 0)) {
+                    return;
+                  }
+                  let studyArr = [];
+                  _.forEach(study.folders, (series) => {
+                    if (!series || !series.files || !(series.files.length > 0)) {
+                      return;
+                    }
+                    let seriesArr = [];
+                    _.forEach(series.files, (img) => {
+                      if (!img || !img.filePath) {
+                        return;
+                      }
+                      seriesArr.push('wadouri:' + cloudServerIp + img.filePath);
+                    });
+                    studyArr.push(seriesArr);
+                    imgNums += seriesArr.length;
+                  });
+                  imageIds.push(studyArr);
+                })
+                initLoad(result);
+              } else {
+                alert('返回结果异常');
+              }
+            }
+          });
+
+
+          function initLoad(result) {
+            const filesData = result.data.data.folders[0].folders[0].files;
+            console.log('Files data passed to renderSeriesData:', filesData);
+            studyArrData = imgTools.renderSeriesData(imageIds[0], filesData);
+            imgTools.initLayerClose(layerObj);
+            initcornerstone.initCornerstone();
+            imgTools.renderStudyImg(studyDivId, studyArrData);
+            imgTools.renderSeriesImg(seriesDivId, studyArrData, 1, 1);
+            initcornerstone.initTaskPool(imgNums, layerObj);
+            initcornerstone.addTaskPool(studyArrData);
+
+            // 将 dicomFileData 设置为全局变量
+            window.dicomFileData = filesData;
+
+            createFileList(filesData);
+          }
+
+          $('.md-btn').click(function (event) {
+            var currentElement = $(event.currentTarget);
+            if (currentElement.attr('toolType') == 'measureToolBtn') {
+              imgTools.activeTool(currentElement.attr('toolValue'));
+            } else if (currentElement.attr('toolType') == 'operateToolBtn') {
+              imgTools.viewTollEven(currentElement.attr('toolValue'));
+            } else if (currentElement.attr('toolType') == 'clearToolBtn') {
+              imgTools.clearAnno(currentElement.attr('toolValue'));
+              return;
+            } else if (currentElement.attr('toolType') == 'otherToolBtn') {
+              imgTools.otherTool(currentElement.attr('toolValue'));
+            } else if (currentElement.attr('toolType') == 'noLightBtn') {
+              return;
+            } else if (currentElement.attr('toolType') == 'mpr') {
+              window.open(getMprUrl());
+              return;
+            }
+            changeBtnColor(currentElement);
+          })
+
+          function getMprUrl() {
+            let seriesIndex = $($('.seriesborder-primary-light').get(0)).data('seriesSort');
+            let mprUrl = './pages/mpr/mprView.html?hospitalId=' + urlObj.search.hospitalId + '&patientId=' + urlObj.search.patientId + '&seriesIndex=' + seriesIndex;
+            return mprUrl;
+          }
+
+          dropdown.render({
+            elem: '#color-map',
+            data: [{
+              title: '无',
+              templet: '<img src="./imgs/icons/None.png" style="width:70px;height:15px"> {{= d.title }}',
+              id: "gray"
+            }, {
+              title: 'PET',
+              templet: '<img src="./imgs/icons/PET.png" style="width:70px;height:15px"> {{= d.title }}',
+              id: "pet"
+            }, {
+              title: 'HSV',
+              templet: '<img src="./imgs/icons/HSV.png" style="width:70px;height:15px"> {{= d.title }}',
+              id: "hsv"
+            }, {
+              title: 'JET',
+              templet: '<img src="./imgs/icons/JET.png" style="width:70px;height:15px"> {{= d.title }}',
+              id: "jet"
+            }],
+            style: 'background-color:black',
+            click: function (data, othis) {
+              imgTools.viewTollEven(data.id);
+            }
+          });
+
+
+          //序列布局按钮弹窗效果
+          new insertLayout.insertTable($("#layout-series"), {
+            min: [3, 3],
+            max: [3, 3],
+            insert: function (rows, cols) {
+              //console.log(rows,cols)
+              //加载序列影像
+              imgTools.renderSeriesImg(seriesDivId, studyArrData, rows, cols);
+            }
+          });
+
+          //图像布局按钮弹窗效果
+          new insertLayout.insertTable($("#layout-img"), {
+            min: [3, 3],
+            max: [3, 3],
+            insert: function (rows, cols) {
+              console.log(rows, cols)
+              // cornerstoneTools.clearToolState($('#grid-content').children().first()[0],'Length');
+              // cornerstone.updateImage($('#grid-content').children().first()[0]);
+              //加载单个序列的多张图片显示功能
+              imgTools.renderOneseriesImg(seriesDivId, studyArrData, rows, cols);
+            }
+          });
+
+          function changeBtnColor(btnDom) {
+            $('.md-btn').removeClass('layui-btn-md-light');
+            $('.md-btn').addClass('layui-btn-md-default');
+            $(btnDom).removeClass('layui-btn-md-default');
+            $(btnDom).addClass('layui-btn-md-light');
+          }
+
+
+          $('#toggle-original-image').click(function () {
+            window.showOriginalImage = !window.showOriginalImage;
+            $(this).find('div').text(window.showOriginalImage ? '显示检测结果' : '显示原始图像');
+
+            // 重新渲染所有图像
+            $('.seriescontent').each(function () {
+              cornerstone.updateImage(this);
+            });
+          });
+
+
+          function createFileList(filesData) {
+            const fileListContainer = $('#file-list');
+            fileListContainer.empty();
+
+            filesData.forEach((file, index) => {
+              const listItem = $('<div>')
+                .addClass('file-list-item')
+                .text(file.fileName)
+                .attr('data-index', index);
+
+              fileListContainer.append(listItem);
+            });
+
+            // 为列表项添加点击事件
+            $('.file-list-item').click(function () {
+              $('.file-list-item').removeClass('active');
+              $(this).addClass('active');
+              const index = $(this).data('index');
+              loadAndDisplayImage(index);
+            });
+          }
+
+          function loadAndDisplayImage(index) {
+            const filesData = window.dicomFileData; // 使用全局变量
+            if (!filesData || filesData.length === 0) {
+              console.error('No DICOM file data available');
+              return;
+            }
+
+            const file = filesData[index];
+            if (!file) {
+              console.error('No file data found for index:', index);
+              return;
+            }
+
+            // 直接使用文件路径构造 imageId
+            const imageId = 'wadouri:' + cloudServerIp + file.filePath;
+            console.log('Constructed imageId:', imageId); // 添加日志
+
+            // 获取当前活动的viewport元素
+            const element = $('.seriesborder-primary-light').get(0);
+            if (!element) {
+              console.error('No active viewport element found');
+              return;
+            }
+
+            cornerstone.loadImage(imageId).then(function (image) {
+              cornerstone.displayImage(element, image);
+
+              // 更新堆栈状态
+              const stackState = cornerstoneTools.getToolState(element, 'stack');
+              if (stackState && stackState.data.length > 0) {
+                stackState.data[0].currentImageIdIndex = index;
+              }
+
+              // 重新渲染内容文字和边界框
+              const eventData = {
+                element: element,
+                image: image,
+                viewport: cornerstone.getViewport(element)
+              };
+              const stack = { currentImageIdIndex: index, imageIds: window.imageIds[0] };
+              imgTools.renderContentText(element, eventData, stack, 1);
+            }).catch(function (error) {
+              console.error('Error loading image:', error);
+            });
+          }
+
+
+          $('#flexBtn').click(function (event) {
+            if ($(event.target).attr('class').indexOf('layui-icon-shrink-right') >= 0) {
+              $(event.target).removeClass('layui-icon-shrink-right').addClass('layui-icon-spread-left');
+              $('.hidden').css('display', 'none');
+              $('#series-list').css('display', 'none');
+              $(".layui-side").css('width', '20px');
+              $(".layui-body").css('left', '20px');
+            } else {
+              $(event.target).removeClass('layui-icon-spread-left').addClass('layui-icon-shrink-right');
+              $('#series-list').css('display', 'block');
+              $(".layui-side").css('width', '200px');
+              $(".layui-body").css('left', '200px');
+              $('.hidden').css('display', 'block');
+            }
+          });
+        });
+
+
+        // 肺结节表格相关代码
+        document.getElementById('double-lung-dropdown').addEventListener('change', function () {
+          var doubleLungValue = this.value;
+          var tracheaValue = document.getElementById('trachea-dropdown').value;
+          if (doubleLungValue || tracheaValue) {
+            document.getElementById('image-findings-text').innerText = doubleLungValue + (tracheaValue ? '，' + tracheaValue : '');
+          } else {
+            document.getElementById('image-findings-text').innerText = '';
+          }
+        });
+
+        document.getElementById('trachea-dropdown').addEventListener('change', function () {
+          var tracheaValue = this.value;
+          var doubleLungValue = document.getElementById('double-lung-dropdown').value;
+          if (doubleLungValue || tracheaValue) {
+            document.getElementById('image-findings-text').innerText = (doubleLungValue ? doubleLungValue + '，' : '') + tracheaValue;
+          } else {
+            document.getElementById('image-findings-text').innerText = '';
+          }
+        });
+      </script>
+
+</body>
+
+</html>
